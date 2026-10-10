@@ -34,3 +34,12 @@ export interface PaginatedResponse<T> {
   limit: number;
   totalPages: number;
 }
+
+export interface ItemMutationResponse {
+  message: string;
+  item: Item;
+}
+
+export interface MessageResponse {
+  message: string;
+}

@@ -2,7 +2,9 @@ import { apiDelete, apiGet, apiPost, apiPut } from './client';
 import type {
   CreateItemPayload,
   Item,
+  ItemMutationResponse,
   ItemsQueryParams,
+  MessageResponse,
   PaginatedResponse,
   UpdateItemPayload,
 } from '../types/item';
@@ -24,13 +26,13 @@ export function fetchItemById(id: string) {
 }
 
 export function createItem(payload: CreateItemPayload) {
-  return apiPost<Item, CreateItemPayload>(ITEMS_PATH, payload);
+  return apiPost<ItemMutationResponse, CreateItemPayload>(ITEMS_PATH, payload);
 }
 
 export function updateItem(id: string, payload: UpdateItemPayload) {
-  return apiPut<Item, UpdateItemPayload>(`${ITEMS_PATH}/${id}`, payload);
+  return apiPut<ItemMutationResponse, UpdateItemPayload>(`${ITEMS_PATH}/${id}`, payload);
 }
 
 export function deleteItem(id: string) {
-  return apiDelete(`${ITEMS_PATH}/${id}`);
+  return apiDelete<MessageResponse>(`${ITEMS_PATH}/${id}`);
 }

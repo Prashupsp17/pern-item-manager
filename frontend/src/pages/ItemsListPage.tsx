@@ -6,12 +6,14 @@ import FilterBar from '../components/FilterBar';
 import ItemTable from '../components/ItemTable';
 import Pagination from '../components/Pagination';
 import SearchBar from '../components/SearchBar';
+import { useToast } from '../context/ToastContext';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import type { Item, ItemStatus } from '../types/item';
 
 const PAGE_SIZE = 10;
 
 export default function ItemsListPage() {
+  const { showToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<Item[]>([]);
   const [total, setTotal] = useState(0);
@@ -80,7 +82,8 @@ export default function ItemsListPage() {
     }
 
     try {
-      await deleteItem(itemToDelete.id);
+      const { message } = await deleteItem(itemToDelete.id);
+      showToast(message);
       setItemToDelete(null);
       await loadItems();
     } catch (deleteError) {

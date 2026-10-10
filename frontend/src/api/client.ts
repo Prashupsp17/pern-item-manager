@@ -70,11 +70,11 @@ export async function apiPut<T, B>(path: string, body: B): Promise<T> {
   return parseResponse<T>(response);
 }
 
-export async function apiDelete(path: string): Promise<void> {
+export async function apiDelete<T = void>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     method: 'DELETE',
     headers: { Accept: 'application/json' },
   });
 
-  await parseResponse<void>(response);
+  return parseResponse<T>(response);
 }

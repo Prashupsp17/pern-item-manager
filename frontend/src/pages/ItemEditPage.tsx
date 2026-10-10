@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { fetchItemById, updateItem } from '../api/items';
 import ItemForm, { type ItemFormValues } from '../components/ItemForm';
+import { useToast } from '../context/ToastContext';
 import type { CreateItemPayload, Item } from '../types/item';
 
 export default function ItemEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [item, setItem] = useState<Item | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,8 @@ export default function ItemEditPage() {
       return;
     }
 
-    await updateItem(id, values);
+    const { message } = await updateItem(id, values);
+    showToast(message);
     navigate(`/items/${id}`);
   }
 

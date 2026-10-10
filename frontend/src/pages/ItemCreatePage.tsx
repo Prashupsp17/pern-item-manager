@@ -1,13 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import { createItem } from '../api/items';
 import ItemForm from '../components/ItemForm';
+import { useToast } from '../context/ToastContext';
 import type { CreateItemPayload } from '../types/item';
 
 export default function ItemCreatePage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   async function handleSubmit(values: CreateItemPayload) {
-    const item = await createItem(values);
+    const { message, item } = await createItem(values);
+    showToast(message);
     navigate(`/items/${item.id}`);
   }
 
