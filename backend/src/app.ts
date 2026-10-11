@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import { pool } from './db/pool.js';
+import { globalRateLimit, writeLimiter } from './middleware/rateLimit.js';
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 5000);
@@ -38,6 +39,8 @@ app.get('/health', async (_req, res) => {
     res.status(503).json({ status: 'error', message: 'Database connection failed' });
   }
 });
+
+app.use('/api', globalRateLimit);
 
 /*
  * GET /api/items — learning reference (commented; only one handler can be active).
@@ -143,7 +146,7 @@ app.get('/api/items', async (req, res) => {
   }
 });
 
-app.post('/api/items', async (req, res) => {
+app.post('/api/items', writeLimiter, async (req, res) => {
   try {
 
     const { title, description, category, status } = req.body;
@@ -189,7 +192,7 @@ app.get('/api/items/:id', async (req, res) => {
   }
 });
 
-app.put('/api/items/:id', async (req, res) => {
+app.put('/api/items/:id', writeLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, category, status } = req.body;
@@ -219,7 +222,7 @@ app.put('/api/items/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/items/:id', async (req, res) => {
+app.delete('/api/items/:id', writeLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query<{ id: string }>(
