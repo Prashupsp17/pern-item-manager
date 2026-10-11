@@ -10,7 +10,15 @@ import { useToast } from '../context/ToastContext';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import type { Item, ItemStatus } from '../types/item';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [5, 10, 20] as const;
+const DEFAULT_PAGE_SIZE = 10;
+
+function parsePageSize(value: string | null): number {
+  const parsed = Number(value ?? DEFAULT_PAGE_SIZE);
+  return PAGE_SIZE_OPTIONS.includes(parsed as (typeof PAGE_SIZE_OPTIONS)[number])
+    ? parsed
+    : DEFAULT_PAGE_SIZE;
+}
 
 export default function ItemsListPage() {
   const { showToast } = useToast();
@@ -25,7 +33,8 @@ export default function ItemsListPage() {
   const search = searchParams.get('search') ?? '';
   const category = searchParams.get('category') ?? '';
   const status = (searchParams.get('status') ?? '') as ItemStatus | '';
-  const page = Number(searchParams.get('page') ?? '1');
+  const page = Math.max(1, Number(searchParams.get('page') ?? '1') || 1);
+  const limit = parsePageSize(searchParams.get('limit'));
 
   const debouncedSearch = useDebouncedValue(search);
 
@@ -56,12 +65,16 @@ export default function ItemsListPage() {
         category,
         status,
         page,
-        limit: PAGE_SIZE,
+        limit,
       });
 
       setItems(response.data);
       setTotal(response.total);
       setTotalPages(response.totalPages);
+
+      if (response.totalPages > 0 && page > response.totalPages) {
+        updateParams({ page: String(response.totalPages) });
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load items');
       setItems([]);
@@ -70,7 +83,7 @@ export default function ItemsListPage() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, category, status, page]);
+  }, [debouncedSearch, category, status, page, limit, updateParams]);
 
   useEffect(() => {
     void loadItems();
@@ -117,6 +130,22 @@ export default function ItemsListPage() {
           onStatusChange={(value) => updateParams({ status: value, page: '1' })}
           onReset={handleResetFilters}
         />
+        <div className="filter-field page-size-field">
+          <label htmlFor="page-size">Per page</label>
+          <select
+            id="page-size"
+            value={limit}
+            onChange={(event) =>
+              updateParams({ limit: event.target.value, page: '1' })
+            }
+          >
+            {PAGE_SIZE_OPTIONS.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {loading && <p className="status-message">Loading items...</p>}

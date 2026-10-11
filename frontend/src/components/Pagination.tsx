@@ -5,28 +5,48 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
+const MAX_PAGE_BUTTONS = 7;
+
+function getVisiblePages(page: number, totalPages: number): number[] {
+  if (totalPages <= MAX_PAGE_BUTTONS) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const half = Math.floor(MAX_PAGE_BUTTONS / 2);
+  let start = Math.max(1, page - half);
+  let end = Math.min(totalPages, start + MAX_PAGE_BUTTONS - 1);
+  start = Math.max(1, end - MAX_PAGE_BUTTONS + 1);
+
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+}
+
 export default function Pagination({ page, totalPages, totalItems, onPageChange }: PaginationProps) {
-  if (totalPages <= 1) {
+  const safeTotalPages = Math.max(1, totalPages);
+  const safePage = Math.min(Math.max(1, page), safeTotalPages);
+
+  if (safeTotalPages <= 1) {
     return (
       <div className="pagination pagination--single">
-        <span>{totalItems} item{totalItems === 1 ? '' : 's'}</span>
+        <span>
+          Page 1 of 1 ({totalItems} item{totalItems === 1 ? '' : 's'})
+        </span>
       </div>
     );
   }
 
-  const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
+  const pages = getVisiblePages(safePage, safeTotalPages);
 
   return (
     <div className="pagination">
       <span className="pagination-summary">
-        Page {page} of {totalPages} ({totalItems} items)
+        Page {safePage} of {safeTotalPages} ({totalItems} items)
       </span>
       <div className="pagination-controls">
         <button
           type="button"
           className="btn btn-secondary"
-          disabled={page <= 1}
-          onClick={() => onPageChange(page - 1)}
+          disabled={safePage <= 1}
+          onClick={() => onPageChange(safePage - 1)}
         >
           Previous
         </button>
@@ -34,7 +54,7 @@ export default function Pagination({ page, totalPages, totalItems, onPageChange 
           <button
             key={pageNumber}
             type="button"
-            className={`btn ${pageNumber === page ? 'btn-primary' : 'btn-secondary'}`}
+            className={`btn ${pageNumber === safePage ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => onPageChange(pageNumber)}
           >
             {pageNumber}
@@ -43,8 +63,8 @@ export default function Pagination({ page, totalPages, totalItems, onPageChange 
         <button
           type="button"
           className="btn btn-secondary"
-          disabled={page >= totalPages}
-          onClick={() => onPageChange(page + 1)}
+          disabled={safePage >= safeTotalPages}
+          onClick={() => onPageChange(safePage + 1)}
         >
           Next
         </button>

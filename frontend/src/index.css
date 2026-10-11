@@ -295,6 +295,10 @@ textarea {
   font-size: 0.875rem;
 }
 
+.page-size-field {
+  min-width: 6rem;
+}
+
 .empty-state {
   padding: 3rem 1.5rem;
   text-align: center;

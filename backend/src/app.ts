@@ -39,35 +39,103 @@ app.get('/health', async (_req, res) => {
   }
 });
 
+/*
+ * GET /api/items — learning reference (commented; only one handler can be active).
+ *
+ * Step 1 — fetch all items (no query params):
+ *
+ * app.get('/api/items', async (_req, res) => {
+ *   try {
+ *     const result = await pool.query<ItemRow>(
+ *       `SELECT id, title, description, category, status, created_at, updated_at
+ *        FROM items
+ *        ORDER BY created_at DESC`,
+ *     );
+ *     const data = result.rows.map(mapItem);
+ *     res.json({
+ *       data,
+ *       total: data.length,
+ *       page: 1,
+ *       limit: 10,
+ *       totalPages: 1,
+ *     });
+ *   } catch (error) {
+ *     console.error(error);
+ *     res.status(500).json({ message: 'Failed to fetch items' });
+ *   }
+ * });
+ *
+ * Step 2 — add search (?search=):
+ *   - const search = String(req.query.search ?? '').trim();
+ *   - if (search) { values.push(`%${search}%`); add WHERE title ILIKE $1 OR description ILIKE $1 }
+ *   - pool.query(queryText, values)
+ *
+ * Step 3 — add pagination (?page=&limit=): COUNT with same WHERE, then LIMIT/OFFSET (active handler below).
+ */
+
+const ITEM_STATUSES = new Set(['active', 'inactive', 'draft']);
+
 app.get('/api/items', async (req, res) => {
   try {
-
     const search = String(req.query.search ?? '').trim();
+    const category = String(req.query.category ?? '').trim();
+    const status = String(req.query.status ?? '').trim();
+    const page = Math.max(1, Number(req.query.page ?? 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
+    const offset = (page - 1) * limit;
 
-    let queryText = `SELECT ID,TITLE,DESCRIPTION,CATEGORY,STATUS,CREATED_AT,UPDATED_AT`
+    const conditions: string[] = [];
     const values: unknown[] = [];
- 
-    if(search){
+
+    if (search) {
       values.push(`%${search}%`);
-      queryText += `WHERE title ILIKE $1 OR description ILIKE $1 ORDER BY CREATED_AT DESC`;
+      const index = values.length;
+      conditions.push(
+        `(title ILIKE $${index} OR description ILIKE $${index} OR category ILIKE $${index})`,
+      );
     }
 
-    queryText += ` ORDER BY created_at DESC`;
-    // const result = await pool.query<ItemRow>(
-    //   `SELECT id, title, description, category, status, created_at, updated_at
-    //    FROM items
-    //    ORDER BY created_at DESC`,
-    // );
+    if (category) {
+      values.push(category);
+      conditions.push(`category = $${values.length}`);
+    }
 
-    const result = await pool.query<ItemRow>(queryText,values);
+    if (status && ITEM_STATUSES.has(status)) {
+      values.push(status);
+      conditions.push(`status = $${values.length}`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countResult = await pool.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM items ${whereClause}`,
+      values,
+    );
+
+    const total = Number(countResult.rows[0]?.count ?? 0);
+    const totalPages = total === 0 ? 1 : Math.ceil(total / limit);
+
+    let queryText = `
+      SELECT id, title, description, category, status, created_at, updated_at
+      FROM items
+      ${whereClause}
+      ORDER BY created_at DESC
+    `;
+
+    values.push(limit, offset);
+    const limitIndex = values.length - 1;
+    const offsetIndex = values.length;
+    queryText += ` LIMIT $${limitIndex} OFFSET $${offsetIndex}`;
+
+    const result = await pool.query<ItemRow>(queryText, values);
     const data = result.rows.map(mapItem);
 
     res.json({
       data,
-      total: data.length,
-      page: 1,
-      limit: 10,
-      totalPages: 1,
+      total,
+      page,
+      limit,
+      totalPages,
     });
   } catch (error) {
     console.error(error);

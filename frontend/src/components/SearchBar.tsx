@@ -7,7 +7,7 @@ interface SearchBarProps {
 export default function SearchBar({
   value,
   onChange,
-  placeholder = 'Search by title or description...',
+  placeholder = 'Search title, description, or category...',
 }: SearchBarProps) {
   return (
     <div className="search-bar">
